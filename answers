@@ -1,0 +1,211 @@
+Week 4 — MERN Stack Integration (Student Submission)
+
+Name: Vincent Ex
+Course: Full-Stack Web Development
+Week: 4
+Topic: Deep Dive into MERN (MongoDB, Express, React, Node) Integration
+
+1. Introduction
+
+This week I built a small MERN blog app to practice how the front-end and back-end work together. The goal was to implement REST APIs with Express + Mongoose, and consume them from a React front-end scaffolded with Vite. I focused on clear project structure, basic validation, and user-friendly UI/UX (loading states, error handling, optimistic updates).
+
+2. Objectives
+
+Create a robust back-end API for blog posts and categories.
+
+Connect MongoDB via Mongoose with proper models & relationships.
+
+Build a React client (Vite) that lists posts, shows a single post, and has create/edit forms.
+
+Implement routing, hooks, API service, and basic authentication.
+
+Add one advanced feature: image uploads for post featured images.
+
+3. Project Structure (summary)
+project-root/
+├─ server/
+│  ├─ controllers/
+│  ├─ models/
+│  ├─ routes/
+│  ├─ middlewares/
+│  ├─ config/
+│  ├─ server.js
+│  └─ package.json
+├─ client/
+│  ├─ src/
+│  │  ├─ components/
+│  │  ├─ pages/
+│  │  ├─ hooks/
+│  │  ├─ services/
+│  │  ├─ App.jsx
+│  │  └─ main.jsx
+│  └─ package.json
+└─ README.md
+
+4. What I implemented (Tasks)
+Task 1 — Project Setup
+
+Initialized the server (npm init) and client (Vite React template).
+
+Configured MongoDB connection using mongoose.connect(process.env.MONGO_URI).
+
+Added basic middleware: express.json(), cors(), morgan (dev).
+
+Configured .env files and set up proxy in client/package.json for local API calls (or used vite proxy).
+
+Used dotenv to load environment variables.
+
+Task 2 — Back-End Development
+
+Models (Mongoose):
+
+models/Post.js (simplified)
+
+const mongoose = require('mongoose');
+
+const PostSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  body: { type: String, required: true },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  imageUrl: { type: String },
+  createdAt: { type: Date, default: Date.now },
+});
+
+module.exports = mongoose.model('Post', PostSchema);
+
+
+models/Category.js
+
+const CategorySchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true }
+});
+module.exports = mongoose.model('Category', CategorySchema);
+
+
+Routes & Controllers
+
+Implemented REST endpoints:
+
+GET /api/posts — list posts (with pagination)
+
+GET /api/posts/:id — get single post
+
+POST /api/posts — create post
+
+PUT /api/posts/:id — update post
+
+DELETE /api/posts/:id — delete post
+
+GET /api/categories, POST /api/categories
+
+Added validation using express-validator for required fields.
+
+Added error-handling middleware to return consistent JSON error responses.
+
+Example route (create post)
+
+// routes/posts.js
+const { body, validationResult } = require('express-validator');
+
+router.post('/', [
+  body('title').notEmpty(),
+  body('body').notEmpty()
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+  // create post...
+});
+
+Task 3 — Front-End Development
+
+React components created
+
+PostList.jsx — fetches posts, shows cards with title/excerpt
+
+PostView.jsx — shows full post and comments
+
+PostForm.jsx — create/edit post (with client-side validation)
+
+Navbar, Footer, Layout — basic site layout
+
+Routing
+
+Used react-router-dom with routes:
+
+/ → PostList
+
+/posts/:id → PostView
+
+/create and /edit/:id → PostForm
+
+State & Hooks
+
+useState & useEffect for local state & fetching.
+
+useContext for auth / theme (simple context provider).
+
+Created a custom useApi hook to encapsulate fetch logic, loading, error handling, and retries.
+
+Example custom API hook
+
+import { useState, useEffect } from 'react';
+
+export function useApi(endpoint, deps = []) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetch(endpoint)
+      .then(r => r.json())
+      .then(json => mounted && setData(json))
+      .catch(err => mounted && setError(err))
+      .finally(() => mounted && setLoading(false));
+    return () => (mounted = false);
+  }, deps);
+
+  return { data, loading, error };
+}
+
+Task 4 — Integration & Data Flow
+
+Created a client-side apiService to centralize all API calls (services/api.js).
+
+Implemented loading and error states across pages.
+
+Implemented optimistic UI for deleting posts: remove from UI immediately, then confirm from server; if server fails, rollback.
+
+Forms use client-side validation and show helpful messages.
+
+For lists, added simple pagination using query params (?page=1&limit=10) and server supports skip/limit.
+
+Task 5 — Advanced Features
+
+I implemented:
+
+Image uploads for featured images: used multer on server to accept multipart/form-data and store images in /uploads (or simulated S3 with local storage). The client sends FormData with file.
+
+Basic authentication (bonus): implemented JWT-based auth endpoints (/api/auth/register, /api/auth/login) and protected routes on server using express-jwt or middleware to verify tokens. Client stores token in localStorage and attaches it to Authorization header.
+
+Comments: implemented simple nested Comment subdocument or separate collection (time permitting).
+
+5. How to run (setup summary)
+
+Ensure Node.js (v18+) and MongoDB are installed and running.
+
+Server:
+
+cd server
+cp .env.example .env
+# set MONGO_URI and JWT_SECRET
+npm install
+npm run dev
+
+
+Client:
+
+cd client
+npm install
+npm run dev
